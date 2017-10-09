@@ -23,12 +23,17 @@ namespace aspnetcore_msi_keyvault
             WebHost.CreateDefaultBuilder(args)
                 .ConfigureAppConfiguration((ctx, builder) =>
                 {
-                    var keyVaultEndpoint = GetKeyVaultEndpoint();
-                    if (!string.IsNullOrEmpty(keyVaultEndpoint))
-                    {
-                        var azureServiceTokenProvider = new AzureServiceTokenProvider();
-                        var keyVaultClient = new KeyVaultClient(new KeyVaultClient.AuthenticationCallback(azureServiceTokenProvider.KeyVaultTokenCallback));
-                        builder.AddAzureKeyVault(keyVaultEndpoint, keyVaultClient, null);
+                    try {
+                        var keyVaultEndpoint = GetKeyVaultEndpoint();
+                        if (!string.IsNullOrEmpty(keyVaultEndpoint))
+                        {
+                            System.Console.WriteLine("configuring keyvault");
+                            var azureServiceTokenProvider = new AzureServiceTokenProvider();
+                            var keyVaultClient = new KeyVaultClient(new KeyVaultClient.AuthenticationCallback(azureServiceTokenProvider.KeyVaultTokenCallback));
+                            builder.AddAzureKeyVault(keyVaultEndpoint, keyVaultClient, null);
+                        }
+                    } catch (Exception ex)  {
+                        System.Console.WriteLine(ex.ToString());
                     }
                 })
                 .UseStartup<Startup>()
