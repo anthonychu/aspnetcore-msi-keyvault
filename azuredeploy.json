@@ -5,7 +5,16 @@
         },
         "hostingPlanName": {
             "type": "string"
+        },
+        "mySecretValue": {
+            "type": "securestring"
+        },
+        "nestedSecretValue": {
+            "type": "securestring"
         }
+    },
+    "variables": {
+        "vaultName": "[concat('msi-vault-', uniqueString(parameters('siteName')))]"
     },
     "resources": [
         {
@@ -24,6 +33,10 @@
                         {
                             "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
                             "value": "[reference(resourceId('microsoft.insights/components/', parameters('siteName')), '2015-05-01').InstrumentationKey]"
+                        },
+                        {
+                            "name": "KEYVAULT_ENDPOINT",
+                            "value": "[concat('https://', variables('vaultName'), '.vault.azure.net/')]"
                         }
                     ]
                 },
@@ -50,7 +63,8 @@
                 "hostingEnvironment": ""
             },
             "sku": {
-                "Tier": "Free"
+                "Tier": "Free",
+                "Name": "F1"
             }
         },
         {
@@ -68,22 +82,64 @@
         },
         {
             "apiVersion": "2015-06-01",
-            "name": "[parameters('siteName')]",
+            "name": "[variables('vaultName')]",
+            "dependsOn": [
+                "[concat('Microsoft.Web/sites/', parameters('siteName'))]"
+            ],
             "location": "[resourceGroup().location]",
             "type": "Microsoft.KeyVault/vaults",
             "properties": {
                 "enabledForDeployment": false,
                 "enabledForTemplateDeployment": false,
                 "enabledForDiskEncryption": false,
-                "accessPolicies": [],
+                "accessPolicies": [{
+                    "objectId": "[reference(concat(resourceId('Microsoft.Web/sites', parameters('siteName')), '/providers/Microsoft.ManagedIdentity/Identities/default'), '2015-08-31-PREVIEW').principalId]",
+                    "tenantId": "[subscription().tenantId]",
+                    "permissions": {
+                        "secrets": [
+                            "Get",
+                            "List"
+                        ]
+                    }
+                }],
                 "tenantId": "[subscription().tenantId]",
                 "sku": {
                     "name": "Standard",
                     "family": "A"
                 }
             }
+        },
+        {
+            "type": "Microsoft.KeyVault/vaults/secrets",
+            "name": "[concat(variables('vaultName'), '/MySecret')]",
+            "apiVersion": "2015-06-01",
+            "properties": {
+              "contentType": "text/plain",
+              "value": "[parameters('mySecretValue')]"
+            },
+            "dependsOn": [
+              "[resourceId('Microsoft.KeyVault/vaults', variables('vaultName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.KeyVault/vaults/secrets",
+            "name": "[concat(variables('vaultName'), '/Secrets--NestedSecret')]",
+            "apiVersion": "2015-06-01",
+            "properties": {
+              "contentType": "text/plain",
+              "value": "[parameters('nestedSecretValue')]"
+            },
+            "dependsOn": [
+              "[resourceId('Microsoft.KeyVault/vaults', variables('vaultName'))]"
+            ]
         }
     ],
+    "outputs": {
+        "foo": {
+            "type": "object",
+            "value": "[reference(resourceId('Microsoft.KeyVault/vaults', variables('vaultName')))]"
+        }   
+    },
     "$schema": "http://schema.management.azure.com/schemas/2014-04-01-preview/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0"
 }
