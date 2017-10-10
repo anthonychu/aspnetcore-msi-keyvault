@@ -22,7 +22,6 @@ namespace aspnetcore_msi_keyvault
 
         public static IWebHost BuildWebHost(string[] args) =>
             WebHost.CreateDefaultBuilder(args)
-                .UseSetting("detailedErrors", "true")
                 .ConfigureAppConfiguration((ctx, builder) =>
                 {
                     var keyVaultEndpoint = GetKeyVaultEndpoint();
@@ -34,7 +33,6 @@ namespace aspnetcore_msi_keyvault
                     }
                 })
                 .UseStartup<Startup>()
-                .CaptureStartupErrors(true)
                 .Build();
 
         private static string GetKeyVaultEndpoint() => Environment.GetEnvironmentVariable("KEYVAULT_ENDPOINT");
